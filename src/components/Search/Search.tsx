@@ -31,8 +31,8 @@ class Search extends React.Component<Props, StarWars> {
 
     if (savedInputValue) {
       this.setState({ searchValue: savedInputValue });
-      await this.fetchHeroes(savedInputValue);
     }
+    await this.fetchHeroes(savedInputValue || '');
   }
 
   componentDidUpdate(_: Props, prevState: StarWars): void {
