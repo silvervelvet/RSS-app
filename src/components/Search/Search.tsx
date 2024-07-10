@@ -1,10 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import List from '../List/List';
-
-interface StarWars {
-  searchValue: string;
-  heroes: Array<Hero>;
-}
 
 interface Hero {
   name: string;
@@ -12,36 +7,32 @@ interface Hero {
   gender: string;
 }
 
-interface Props {}
+const useLSState = (key: string, defaultValue: string) => {
+  const [value, setValue] = useState(() => {
+    const savedValue = localStorage.getItem(key);
+    return savedValue !== null ? savedValue : defaultValue;
+  });
 
-class Search extends React.Component<Props, StarWars> {
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      searchValue: '',
-      heroes: [],
+  useEffect(() => {
+    return () => {
+      localStorage.setItem(key, value);
     };
+  }, [key, value]);
 
-    this.handleSearch = this.handleSearch.bind(this);
-    this.handleChange = this.handleChange.bind(this);
-  }
+  return [value, setValue] as const;
+};
 
-  async componentDidMount(): Promise<void> {
-    const savedInputValue = localStorage.getItem('searchValue') || '';
+const Search: React.FC = () => {
+  const [searchValue, setSearchValue] = useLSState('searchValue', '');
+  const [heroes, setHeroes] = useState<Hero[]>([]);
 
-    if (savedInputValue) {
-      this.setState({ searchValue: savedInputValue });
+  useEffect(() => {
+    if (searchValue) {
+      fetchHeroes(searchValue);
     }
-    await this.fetchHeroes(savedInputValue || '');
-  }
+  }, [searchValue]);
 
-  componentDidUpdate(_: Props, prevState: StarWars): void {
-    if (prevState.searchValue !== this.state.searchValue) {
-      localStorage.setItem('searchValue', this.state.searchValue);
-    }
-  }
-
-  async fetchHeroes(searchValue: string): Promise<void> {
+  const fetchHeroes = async (searchValue: string): Promise<void> => {
     try {
       const response = await fetch(
         `https://swapi.dev/api/people/?search=${searchValue}`
@@ -53,41 +44,39 @@ class Search extends React.Component<Props, StarWars> {
         gender: hero.gender,
       }));
 
-      this.setState({ heroes });
+      setHeroes(heroes);
     } catch (error) {
       console.log(error);
     }
-  }
+  };
 
-  handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    this.setState({ searchValue: e.target.value });
-  }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchValue(e.target.value);
+  };
 
-  async handleSearch(e: React.FormEvent) {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const trimmedSearchValue = this.state.searchValue.trim();
+    const trimmedSearchValue = searchValue.trim();
 
     if (trimmedSearchValue) {
-      await this.fetchHeroes(trimmedSearchValue);
+      await fetchHeroes(trimmedSearchValue);
     }
-  }
+  };
 
-  render() {
-    return (
-      <section>
-        <form onSubmit={this.handleSearch}>
-          <input
-            value={this.state.searchValue}
-            onChange={this.handleChange}
-            placeholder="search hero"
-          />
-          <button type="submit">Search</button>
-        </form>
-        <List heroes={this.state.heroes} />
-      </section>
-    );
-  }
-}
+  return (
+    <section>
+      <form onSubmit={handleSearch}>
+        <input
+          value={searchValue}
+          onChange={handleChange}
+          placeholder="search hero"
+        />
+        <button type="submit">Search</button>
+      </form>
+      <List heroes={heroes} />
+    </section>
+  );
+};
 
 export default Search;
