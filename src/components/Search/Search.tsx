@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams, useNavigate, Outlet } from 'react-router-dom';
 import List from '../List/List';
+import Pagination from '../Pagination/Pagination';
+import './Search.css';
 
 interface Hero {
   name: string;
@@ -25,17 +28,24 @@ const useLSState = (key: string, defaultValue: string) => {
 const Search: React.FC = () => {
   const [searchValue, setSearchValue] = useLSState('searchValue', '');
   const [heroes, setHeroes] = useState<Hero[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentPage = parseInt(searchParams.get('page') || '1', 10);
+  const elementsPerPage = 3;
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (searchValue) {
-      fetchHeroes(searchValue);
+      fetchHeroes(searchValue, currentPage);
     }
-  }, [searchValue]);
+  }, [searchValue, currentPage]);
 
-  const fetchHeroes = async (searchValue: string): Promise<void> => {
+  const fetchHeroes = async (
+    searchValue: string,
+    page: number
+  ): Promise<void> => {
     try {
       const response = await fetch(
-        `https://swapi.dev/api/people/?search=${searchValue}`
+        `https://swapi.dev/api/people/?search=${searchValue}&page=${page}`
       );
       const result = await response.json();
       const heroes: Hero[] = result.results.map((hero: Hero) => ({
@@ -60,21 +70,41 @@ const Search: React.FC = () => {
     const trimmedSearchValue = searchValue.trim();
 
     if (trimmedSearchValue) {
-      await fetchHeroes(trimmedSearchValue);
+      await fetchHeroes(trimmedSearchValue, 1);
+      setSearchParams({ page: '1' });
     }
   };
 
+  const handlePageChange = (pageNumber: number) => {
+    setSearchParams({ page: pageNumber.toString() });
+  };
+
+  const handleHeroClick = (heroUrl: string) => {
+    navigate(`/?page=${currentPage}&details=${encodeURIComponent(heroUrl)}`);
+  };
+
   return (
-    <section>
-      <form onSubmit={handleSearch}>
-        <input
-          value={searchValue}
-          onChange={handleChange}
-          placeholder="search hero"
+    <section className="search-section">
+      <div className="left-panel">
+        <form onSubmit={handleSearch}>
+          <input
+            value={searchValue}
+            onChange={handleChange}
+            placeholder="Search hero"
+          />
+          <button type="submit">Search</button>
+        </form>
+        <List heroes={heroes} onHeroClick={handleHeroClick} />
+        <Pagination
+          handlePageChange={handlePageChange}
+          elementsPerPage={elementsPerPage}
+          total={heroes.length}
+          currentPage={currentPage}
         />
-        <button type="submit">Search</button>
-      </form>
-      <List heroes={heroes} />
+      </div>
+      <div className="right-panel">
+        <Outlet />
+      </div>
     </section>
   );
 };

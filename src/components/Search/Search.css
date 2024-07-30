@@ -1,0 +1,12 @@
+.search-section {
+  display: flex;
+  justify-content: space-between;
+}
+
+.left-panel {
+  width: 50%;
+}
+
+.right-panel {
+  width: 50%;
+}
