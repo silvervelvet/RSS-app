@@ -44,9 +44,7 @@ const HeroDetails: React.FC = () => {
 
   return (
     <div className="hero-details">
-      {loading ? (
-        <p>Loading...</p>
-      ) : hero ? (
+      {loading ? null : hero ? (
         <div>
           <button onClick={handleClose}>Close</button>
           <h2>{hero.name}</h2>
@@ -55,9 +53,7 @@ const HeroDetails: React.FC = () => {
           <p>Mass: {hero.mass}</p>
           <p>Birth Year: {hero.birth_year}</p>
         </div>
-      ) : (
-        <p>No hero selected</p>
-      )}
+      ) : null}
     </div>
   );
 };

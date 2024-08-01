@@ -19,7 +19,7 @@ const Pagination: React.FC<PaginationProps> = ({
   }
 
   return (
-    <div>
+    <div className="pagination">
       {pageNumbers.map((number) => (
         <button
           key={number}

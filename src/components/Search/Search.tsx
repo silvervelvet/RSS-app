@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useNavigate, Outlet } from 'react-router-dom';
 import List from '../List/List';
 import Pagination from '../Pagination/Pagination';
@@ -17,9 +17,7 @@ const useLSState = (key: string, defaultValue: string) => {
   });
 
   useEffect(() => {
-    return () => {
-      localStorage.setItem(key, value);
-    };
+    localStorage.setItem(key, value);
   }, [key, value]);
 
   return [value, setValue] as const;
@@ -28,36 +26,47 @@ const useLSState = (key: string, defaultValue: string) => {
 const Search: React.FC = () => {
   const [searchValue, setSearchValue] = useLSState('searchValue', '');
   const [heroes, setHeroes] = useState<Hero[]>([]);
+  const [allHeroes, setAllHeroes] = useState<Hero[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
-  const elementsPerPage = 3;
+  const elementsPerPage = 2;
   const navigate = useNavigate();
+
+  const fetchHeroes = useCallback(
+    async (searchValue: string): Promise<void> => {
+      try {
+        const response = await fetch(
+          `https://swapi.dev/api/people/?search=${searchValue}`
+        );
+        const result = await response.json();
+        const heroes: Hero[] = result.results.map((hero: Hero) => ({
+          name: hero.name,
+          url: hero.url,
+          gender: hero.gender,
+        }));
+        setAllHeroes(heroes);
+        setHeroes(paginate(heroes, currentPage, elementsPerPage));
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    [currentPage, elementsPerPage]
+  );
 
   useEffect(() => {
     if (searchValue) {
-      fetchHeroes(searchValue, currentPage);
+      fetchHeroes(searchValue);
     }
-  }, [searchValue, currentPage]);
+  }, [searchValue, fetchHeroes]);
 
-  const fetchHeroes = async (
-    searchValue: string,
-    page: number
-  ): Promise<void> => {
-    try {
-      const response = await fetch(
-        `https://swapi.dev/api/people/?search=${searchValue}&page=${page}`
-      );
-      const result = await response.json();
-      const heroes: Hero[] = result.results.map((hero: Hero) => ({
-        name: hero.name,
-        url: hero.url,
-        gender: hero.gender,
-      }));
+  useEffect(() => {
+    setHeroes(paginate(allHeroes, currentPage, elementsPerPage));
+  }, [allHeroes, currentPage]);
 
-      setHeroes(heroes);
-    } catch (error) {
-      console.log(error);
-    }
+  const paginate = (items: Hero[], page: number, perPage: number) => {
+    const start = (page - 1) * perPage;
+    const end = start + perPage;
+    return items.slice(start, end);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,7 +79,7 @@ const Search: React.FC = () => {
     const trimmedSearchValue = searchValue.trim();
 
     if (trimmedSearchValue) {
-      await fetchHeroes(trimmedSearchValue, 1);
+      await fetchHeroes(trimmedSearchValue);
       setSearchParams({ page: '1' });
     }
   };
@@ -98,7 +107,7 @@ const Search: React.FC = () => {
         <Pagination
           handlePageChange={handlePageChange}
           elementsPerPage={elementsPerPage}
-          total={heroes.length}
+          total={allHeroes.length}
           currentPage={currentPage}
         />
       </div>
